@@ -8,26 +8,39 @@ app = FastAPI(title="Churn Prediction API", version="1.0")
 
 MODEL_PATH = "models/churn_xgb.pkl"
 
-# Load model at startup
 if os.path.exists(MODEL_PATH):
     with open(MODEL_PATH, "rb") as f:
         model = pickle.load(f)
     print(f"Model loaded from {MODEL_PATH}")
 else:
     model = None
-    print("WARNING: No model found. Run training first.")
 
+# All 19 features in the exact order used during training
 class CustomerFeatures(BaseModel):
+    gender: int              # 0=Female, 1=Male
+    SeniorCitizen: int       # 0 or 1
+    Partner: int             # 0=No, 1=Yes
+    Dependents: int          # 0=No, 1=Yes
     tenure: float
+    PhoneService: int        # 0=No, 1=Yes
+    MultipleLines: int       # 0=No, 1=No phone, 2=Yes
+    InternetService: int     # 0=DSL, 1=Fiber optic, 2=No
+    OnlineSecurity: int      # 0=No, 1=No internet, 2=Yes
+    OnlineBackup: int
+    DeviceProtection: int
+    TechSupport: int
+    StreamingTV: int
+    StreamingMovies: int
+    Contract: int            # 0=Month-to-month, 1=One year, 2=Two year
+    PaperlessBilling: int    # 0=No, 1=Yes
+    PaymentMethod: int       # 0-3 encoded
     MonthlyCharges: float
     TotalCharges: float
-    Contract: int        # 0=Month-to-month, 1=One year, 2=Two year
-    InternetService: int # 0=DSL, 1=Fiber optic, 2=No
 
 class PredictionResponse(BaseModel):
-    churn_prediction: int       # 0 or 1
-    churn_probability: float    # 0.0 to 1.0
-    risk_level: str             # Low / Medium / High
+    churn_prediction: int
+    churn_probability: float
+    risk_level: str
 
 @app.get("/")
 def root():
@@ -43,22 +56,18 @@ def predict(customer: CustomerFeatures):
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     features = np.array([[
-        customer.tenure,
-        customer.MonthlyCharges,
-        customer.TotalCharges,
-        customer.Contract,
-        customer.InternetService
+        customer.gender, customer.SeniorCitizen, customer.Partner,
+        customer.Dependents, customer.tenure, customer.PhoneService,
+        customer.MultipleLines, customer.InternetService, customer.OnlineSecurity,
+        customer.OnlineBackup, customer.DeviceProtection, customer.TechSupport,
+        customer.StreamingTV, customer.StreamingMovies, customer.Contract,
+        customer.PaperlessBilling, customer.PaymentMethod,
+        customer.MonthlyCharges, customer.TotalCharges
     ]])
 
     prediction = int(model.predict(features)[0])
     probability = float(model.predict_proba(features)[0][1])
-
-    if probability < 0.3:
-        risk = "Low"
-    elif probability < 0.6:
-        risk = "Medium"
-    else:
-        risk = "High"
+    risk = "High" if probability >= 0.6 else "Medium" if probability >= 0.3 else "Low"
 
     return PredictionResponse(
         churn_prediction=prediction,
