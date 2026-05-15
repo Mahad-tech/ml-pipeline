@@ -21,7 +21,7 @@ Includes pluggable use-case modules, experiment tracking, a REST API, and CI/CD.
 ## Quickstart
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Mahad-tech/ml-pipeline.git
 cd ml-pipeline
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
