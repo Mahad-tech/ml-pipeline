@@ -74,3 +74,23 @@ def predict(customer: CustomerFeatures):
         churn_probability=round(probability, 4),
         risk_level=risk
     )
+
+
+# ── Forecasting endpoint ───────────────────────────────────────────────────
+from fastapi import Query
+
+@app.get("/forecast")
+def forecast(
+    store: int = Query(default=1, description="Store number 1-10"),
+    item:  int = Query(default=1, description="Item number 1-50"),
+    days:  int = Query(default=7, description="Days ahead to forecast")
+):
+    try:
+        from use_cases.forecasting.forecast_api import train_and_predict
+        result = train_and_predict(
+            store=store, item=item, days_ahead=days,
+            df_path="data/raw/forecasting/train.csv"
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
