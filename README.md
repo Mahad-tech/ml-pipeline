@@ -53,15 +53,20 @@ pytest tests/ -v                       # 14 tests
 
 | Endpoint | Method | Description |
 |---|---|---|
-| `POST /predict` | POST | Churn probability + risk level (Low / Medium / High) |
-| `GET /health` | GET | Health check |
-| `GET /docs` | GET | Interactive Swagger UI |
+| POST /predict | POST | Churn probability + risk level (Low / Medium / High) |
+| GET /health | GET | Health check |
+| GET /docs | GET | Interactive Swagger UI |
 
-**Example request:**
+**Example:**
 ```bash
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
-  -d '{"tenure": 12, "MonthlyCharges": 65.0, "Contract": "Month-to-month", ...}'
+  -d '{"gender": 1, "SeniorCitizen": 0, "Partner": 0, "Dependents": 0,
+       "tenure": 2, "PhoneService": 1, "MultipleLines": 0,
+       "InternetService": 1, "OnlineSecurity": 0, "OnlineBackup": 0,
+       "DeviceProtection": 0, "TechSupport": 0, "StreamingTV": 0,
+       "StreamingMovies": 0, "Contract": 0, "PaperlessBilling": 1,
+       "PaymentMethod": 2, "MonthlyCharges": 85.0, "TotalCharges": 170.0}'
 ```
 
 ## Design Decisions
@@ -74,7 +79,7 @@ curl -X POST http://localhost:8000/predict \
 ## Dataset
 
 Telco Customer Churn — 7,043 customers, 19 features, 27% churn rate.
-Source: IBM Sample Dataset via [Kaggle].
+Source: IBM Sample Dataset via Kaggle.
 
 ## Stack
 
