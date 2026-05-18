@@ -1,23 +1,39 @@
-# End-to-End ML Pipeline
+# ml-pipeline
 
-A modular, production-grade machine learning pipeline demonstrating MLOps best practices.
-Includes pluggable use-case modules, experiment tracking, a REST API, and CI/CD.
+> Predicts which telecom customers are likely to cancel their subscription,
+> so retention teams can intervene before they leave.
+
+End-to-end ML pipeline with experiment tracking, a REST API, and CI/CD.
+Trained on 7,043 real customer records — **ROC-AUC 0.86**.
+
+---
+
+## Results
+
+| Model | Accuracy | ROC-AUC |
+|---|---|---|
+| Logistic Regression | 75.7% | **0.86** |
+| XGBoost | **80.6%** | 0.85 |
+
+XGBoost wins on accuracy. Logistic Regression wins on ROC-AUC because
+`class_weight='balanced'` prioritises catching churners over overall correctness —
+the right trade-off when false negatives cost more than false positives.
+
+---
 
 ## Architecture
-## Use Cases
 
-| Module | Dataset | Model | Metric |
-|---|---|---|---|
-| Churn Prediction | Telco Customer Churn (7k rows) | XGBoost + Logistic Regression | ROC-AUC: 0.86 |
-| Sales Forecasting | Store Item Demand (913k rows) | Prophet | MAPE: 23% |
-| Sentiment Analysis | IMDB Reviews | DistilBERT | coming soon |
-
-## Stack
-- **ML:** scikit-learn, XGBoost, Prophet
-- **Experiment Tracking:** MLflow
-- **Serving:** FastAPI + uvicorn
-- **Testing:** pytest (14 tests)
-- **CI/CD:** GitHub Actions
+```
+CSV / API / DB
+      │
+      ▼
+Data Ingestion  ──►  Feature Engineering  ──►  Model Training  ──►  Evaluation
+(loader.py)          (transformer.py)           (trainer.py)         (metrics.py)
+                                                      │
+                                                      ▼
+                                               Serving (FastAPI)
+                                               POST /predict
+```
 
 ## Quickstart
 
@@ -27,27 +43,39 @@ cd ml-pipeline
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
-python main.py                                      # churn pipeline
-python use_cases/forecasting/train_forecast.py      # forecasting pipeline
-python use_cases/forecasting/forecast_api.py        # 7-day forecast preview
-
-mlflow ui                                           # experiments at localhost:5000
-uvicorn src.serving.api:app --reload               # API at localhost:8000
-pytest tests/ -v                                    # run all 14 tests
+python main.py                         # run full pipeline
+mlflow ui                              # experiments → localhost:5000
+uvicorn src.serving.api:app --reload   # API → localhost:8000
+pytest tests/ -v                       # 14 tests
 ```
 
-## API Endpoints
+## API
 
 | Endpoint | Method | Description |
 |---|---|---|
-| /predict | POST | Churn probability + risk level |
-| /forecast?store=1&item=1&days=7 | GET | Sales forecast for N days |
-| /health | GET | Health check |
-| /docs | GET | Interactive Swagger UI |
+| `POST /predict` | POST | Churn probability + risk level (Low / Medium / High) |
+| `GET /health` | GET | Health check |
+| `GET /docs` | GET | Interactive Swagger UI |
 
-## Key Design Decisions
-- `src/` contains the pipeline engine; `use_cases/` contains swappable business modules
-- Time series split by date only — no random splits to prevent data leakage
-- `class_weight='balanced'` handles 27% churn class imbalance
-- sklearn `Pipeline` ensures consistent scaling at train and predict time
-- Prophet chosen over ARIMA for automatic multi-seasonality handling
+**Example request:**
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"tenure": 12, "MonthlyCharges": 65.0, "Contract": "Month-to-month", ...}'
+```
+
+## Design Decisions
+
+- `src/` is the pipeline engine — `use_cases/` holds swappable business modules
+- `class_weight='balanced'` handles the 27% churn class imbalance
+- sklearn `Pipeline` ensures scaling is applied at train and predict time consistently
+- Feature schema is fixed to training order — all 19 features documented in `src/serving/api.py`
+
+## Dataset
+
+Telco Customer Churn — 7,043 customers, 19 features, 27% churn rate.
+Source: IBM Sample Dataset via [Kaggle].
+
+## Stack
+
+`scikit-learn` · `XGBoost` · `MLflow` · `FastAPI` · `pytest` · `GitHub Actions`
