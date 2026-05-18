@@ -6,3 +6,4 @@ mlruns/
 data/raw/
 notebooks/
 notebooks/
+*.db
